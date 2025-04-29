@@ -6,6 +6,7 @@ import settings
 import routine
 import socket
 from utils import decode_values
+from rq.job import Job
 
 
 app = flask.Flask(__name__)
@@ -18,7 +19,7 @@ def pxe_basename(fqdn):
 
 @app.route("/systems", methods=["GET"])
 def systems_list():
-    systems = [v.decode('utf-8') for v in r.scan_iter('system:*')]
+    systems = [v.decode('utf-8').replace('system:','',1) for v in r.scan_iter('system:*')]
     nb_systems = len(systems)
     return flask.jsonify({"systems": systems, "_meta": {"count": nb_systems}})
 
@@ -43,6 +44,7 @@ def system_create(fqdn):
     k_v = decode_values(r.hgetall("system:%s" % fqdn))
     if len(k_v) == 0:
         values = flask.request.json
+        values.update({'fqdn': fqdn})
         r.hset("system:%s" % fqdn, mapping=values)
         return flask.Response(
             json.dumps(
@@ -62,6 +64,26 @@ def system_create(fqdn):
                 }
             ),
             status=409,
+            content_type="application/json",
+        )
+
+@app.route("/systems/<fqdn>", methods=["PATCH"])
+def system_update(fqdn):
+    k_v = decode_values(r.hgetall("system:%s" % fqdn))
+    if len(k_v) != 0:
+        values = flask.request.json
+        updates = dict(set(k_v.items()) ^ set(values.items()))
+        k_v.update(values)
+        r.hset("system:%s" % fqdn, mapping=k_v)
+        return flask.jsonify({fqdn: updates})
+    else:
+        return flask.Response(
+            json.dumps(
+                {
+                    "message": f"{fqdn} system doesn't exists."
+                }
+            ),
+            status=204,
             content_type="application/json",
         )
 
@@ -90,14 +112,12 @@ def system_actions(fqdn):
             job = routine.get_jobs_queue(k_v["lab"]).enqueue(
                     getattr(routine, action), kwargs=action_args
                     )
-            print("job=%s" % job)
-            print("dir=%s" % dir(job))
             return flask.Response(
                     json.dumps(
                         {
                             "status": "OK",
                             "message": f"Action for {fqdn} has been started.",
-                            "job": "job",
+                            "job": job.get_id(),
                         }
                     ),
                     status=201,
@@ -114,7 +134,31 @@ def system_actions(fqdn):
                     content_type="application/json",
                     )
 
+@app.route("/jobs/<job_key>", methods=["GET"])
+def job_details(job_key):
+    job = Job.fetch(job_key, connection=r)
+    if job.is_finished:
+        return flask.jsonify({'settings': job.result}), 200
+    else:
+        return "Nay!", 202
+
+def has_no_empty_params(rule):
+    defaults = rule.defaults if rule.defaults is not None else ()
+    arguments = rule.arguments if rule.arguments is not None else ()
+    return len(defaults) >= len(arguments)
+
+@app.route("/site-map")
+def site_map():
+    links = []
+    for rule in app.url_map.iter_rules():
+        # Filter out rules we can't navigate to in a browser
+        # and rules that require parameters
+        if "GET" in rule.methods and has_no_empty_params(rule):
+            url = rule.rule
+            links.append((url, rule.endpoint))
+    # links is now a list of url, endpoint tuples
+    return flask.jsonify({'links': links})
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=settings.BACKEND_PORT, debug=True)
+    app.run(host="0.0.0.0", port=settings.PROVISIONER_PORT, debug=True)
 

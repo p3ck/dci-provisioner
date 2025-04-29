@@ -1,0 +1,53 @@
+#!/bin/sh
+set -e
+set -x
+
+if [ "$power_mode" == interrupt ] ; then
+    power_mode=diag
+fi
+
+target_mode="$power_mode"
+
+know_target_mode() {
+    [ "$power_mode" == "On" -o "$power_mode" == "Off" ]
+}
+
+get_current_mode() {
+    #current_mode=$(ipmitool -H "$power_address" -U "$power_user" -P "$power_pass" power status)
+    current_mode=$(curl -i -u ${power_user}:${power_pass} -H "Accept: application/json" https://${power_address}/redfish/v1/Systems/System.Embedded.1/ --insecure | grep -Po '"PowerState":.*?[^\\]",' | cut -d':' -f2| sed -E -e 's/"|,//g')
+    echo $current_mode
+
+}
+
+in_target_mode() {
+    get_current_mode
+    [ "$current_mode" == "$target_mode" ]
+}
+
+
+if know_target_mode && in_target_mode ; then
+        exit 0
+fi
+
+
+if [ "$target_mode" == "Off" ]; then
+    curl -X POST -u ${power_user}:${power_pass} -d '{ "ResetType": "ForceOff" }' -H 'Content-Type: application/json' https://${power_address}/redfish/v1/Systems/System.Embedded.1/Actions/ComputerSystem.Reset --insecure
+elif [ "$target_mode" == "On" ]; then
+
+    curl -X POST -u ${power_user}:${power_pass} -d '{ "ResetType": "On" }' -H 'Content-Type: application/json' https://${power_address}/redfish/v1/Systems/System.Embedded.1/Actions/ComputerSystem.Reset --insecure
+fi
+
+
+
+if know_target_mode ; then
+    for i in $(seq 20) ; do
+        if in_target_mode ; then
+            exit 0
+        fi
+        sleep 1
+    done
+    echo "Timed out waiting for $target_mode (Status: $current_mode)" >&2
+    exit 1
+fi
+
+

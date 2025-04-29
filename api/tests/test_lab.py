@@ -1,7 +1,7 @@
 import unittest
 from mock import patch
 
-from lab_api import (app, r)
+from app import (app, r)
 
 pxe_default = '''default local
 prompt 0

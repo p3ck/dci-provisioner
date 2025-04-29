@@ -1,0 +1,64 @@
+url --url={{ tree_url }}
+
+text
+
+bootloader --location=mbr
+
+network --bootproto=dhcp --hostname={{ fqdn }}
+
+{% for name, url in repos.items() %}
+repo --name={{ name }} --cost=100 --baseurl={{ url }}{% endfor %}
+
+firewall --disabled
+# Run the Setup Agent on first boot
+firstboot --disable
+# System keyboard
+keyboard us
+# System language
+lang en_US.UTF-8
+
+reboot
+#Root password
+rootpw --iscrypted $1$C9FIPSC6$yO30DuBILqKGZZ7Jk8VI00
+# SELinux configuration
+selinux --permissive
+
+
+# System timezone
+timezone America/New_York
+
+zerombr
+clearpart --all --initlabel
+
+autopart --type plain
+
+%packages --ignoremissing
+chrony
+%end
+
+%post --log=/dev/console
+set -x
+
+{% for name, url in repos.items() %}
+# Add distro and custom Repos
+cat <<"EOF" >/etc/yum.repos.d/{{ name }}.repo
+[{{ name }}]
+name={{ name }}
+baseurl={{ url }}
+enabled=1
+gpgcheck=0
+skip_if_unavailable=1
+EOF
+{% endfor %}
+
+# Setup SSH key access
+mkdir -p /root/.ssh
+{% for ssh_pub_key in ssh_pub_keys %}
+cat >>/root/.ssh/authorized_keys <<"__EOF__"
+{{ ssh_pub_key }}
+__EOF__{% endfor %}
+restorecon -R /root/.ssh
+chmod go-w /root /root/.ssh /root/.ssh/authorized_keys
+sed -i '/^#PermitRootLogin /s/^#//' /etc/ssh/sshd_config
+sed -i 's|PermitRootLogin .*|PermitRootLogin yes|' /etc/ssh/sshd_config
+%end

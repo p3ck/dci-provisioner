@@ -1,0 +1,4 @@
+linux{{ grub2_postfix }}  {{ kernel_path }} {{ kernel_options }} {{ ks_host }} netboot_method=grub2
+initrd{{ grub2_postfix }} {{ initrd_path }}
+
+boot

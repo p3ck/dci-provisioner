@@ -4,4 +4,4 @@ timeout 100
 label linux
     kernel {{ kernel_path }}
     ipappend 2
-    append initrd={{ initrd_path }} {{ kernel_options }} netboot_method=pxe
+    append initrd={{ initrd_path }} {{ kernel_options }} {{ ks_host }} netboot_method=pxe

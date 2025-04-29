@@ -1,0 +1,22 @@
+port: 69
+user: root
+hooks:
+  - type: http
+    regexp: bootloader/([^/]*)/image
+    template: http://localhost:8008/netboots/$1/image
+
+  - type: http
+    regexp: bootloader/[^/]*/pxelinux.cfg/([0-9A-Fa-f]{8})$
+    template: http://localhost:8008/netboots/$1/pxe
+
+  - type: http
+    regexp: grub.cfg-([0-9A-Fa-f]{8})
+    template: http://localhost:8008/netboots/$1/grub2
+
+  - type: file
+    regexp: /([0-9A-Fa-f]{8})/((kernel|initrd))$
+    template: /var/lib/tftpboot/$1/$2
+
+  - type: file
+    regexp: ^.*$
+    template: /var/lib/tftpboot/$0

@@ -1,0 +1,19 @@
+FROM quay.io/fedora/s2i-core:latest
+
+ENV LANG en_US.UTF-8
+
+RUN dnf -y upgrade && \
+    rpm --setcaps shadow-utils 2>/dev/null && \
+    dnf -y install python3 python3-pip supervisor && \
+    dnf clean all
+
+COPY api /opt/dci-provisioner/api
+COPY requirements.txt /opt/dci-provisioner
+COPY configs/supervisord.d/dci-provisioner.ini /etc/supervisord.d
+
+WORKDIR /opt/dci-provisioner
+RUN pip install -r requirements.txt
+
+ENV PYTHONPATH /opt/dci-provisioner
+
+CMD ["supervisord", "-n"]
