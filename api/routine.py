@@ -141,14 +141,15 @@ def provision(system, action):
     # Configure kickstart for host
     ks_meta = action.get("ks_meta", {})
     kickstart_values = dict(hex_ip = action["hex_ip"],
-                            fqdn = system.get("fqdn"),
-                            osmajor = ks_meta.get("osmajor"),
-                            osminor = ks_meta.get("osminor"),
-                            arch = system.get("arch"),
-                            tree_url = ks_meta.get("tree_url"),
-                            repos = json.dumps(ks_meta.get("repos")),
-                            ssh_pub_keys = json.dumps(ks_meta.get("ssh_pub_keys")),
-                            ks_appends = ks_meta.get("ks_appends")
+                            fqdn = system.get("fqdn", ""),
+                            osmajor = ks_meta.get("osmajor", ""),
+                            osminor = ks_meta.get("osminor", ""),
+                            arch = system.get("arch", ""),
+                            tree_url = ks_meta.get("tree_url", ""),
+                            repos = json.dumps(ks_meta.get("repos", {})),
+                            ssh_pub_keys = json.dumps(ks_meta.get("ssh_pub_keys", [])),
+                            breadcrumb = ks_meta.get("breadcrumb", ""),
+                            ks_appends = ks_meta.get("ks_appends", "")
                             )
     r.hset("kickstart:%s" % action["hex_ip"], mapping=kickstart_values)
 

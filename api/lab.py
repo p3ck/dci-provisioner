@@ -60,7 +60,9 @@ def kickstart(hex_ip):
         ssh_pub_keys = json.loads(kickstart_values.get("ssh_pub_keys"))
         # update with de-serialized versions
         kickstart_values.update({'repos': repos,
-                                 'ssh_pub_keys': ssh_pub_keys})
+                                 'ssh_pub_keys': ssh_pub_keys,
+                                 'root_pw': settings.ROOT_PW
+                                 })
         return render_kickstart(osmajor, kickstart_values)
     return flask.Response(
         json.dumps(
@@ -81,7 +83,10 @@ def netboot_image(hex_ip):
             image = '{0}/image'.format(hex_ip)
         else:
             image = '{0}-image'.format(netboot_values['arch'])
-    return flask.send_from_directory(settings.TFTP_ROOT, image)
+    if image:
+        return flask.send_from_directory(settings.TFTP_ROOT, image)
+    else:
+        return image, 404
 
 @app.route("/netboots/<hex_ip>/pxe", methods=["GET"])
 def netboot_pxe(hex_ip):

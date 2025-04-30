@@ -18,8 +18,8 @@ keyboard us
 lang en_US.UTF-8
 
 reboot
-#Root password
-rootpw --iscrypted $1$C9FIPSC6$yO30DuBILqKGZZ7Jk8VI00
+#Root password, this is only to keep anaconda happy, we install an ssh key below and disable password logins for root
+rootpw --iscrypted {{ root_pw }}
 # SELinux configuration
 selinux --permissive
 
@@ -61,4 +61,6 @@ restorecon -R /root/.ssh
 chmod go-w /root /root/.ssh /root/.ssh/authorized_keys
 sed -i '/^#PermitRootLogin /s/^#//' /etc/ssh/sshd_config
 sed -i 's|PermitRootLogin .*|PermitRootLogin yes|' /etc/ssh/sshd_config
+
+echo -n "{{ breadcrumb }}" >/root/.breadcrumb
 %end
