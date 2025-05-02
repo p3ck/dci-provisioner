@@ -6,7 +6,7 @@ import settings
 import routine
 import socket
 import string
-from utils import decode_values
+from utils import decode_values, extract_arg
 
 
 app = flask.Flask(__name__)
@@ -103,7 +103,14 @@ def netboot_grub2(hex_ip):
     template = "netboot/grub2_default.j2"
     netboot_values = decode_values(r.hgetall("netboot:%s" % hex_ip))
     if netboot_values:
-        netboot_values.update({'ks_host': get_ks_url(hex_ip)})
+            # devicetree is needed for some aarch64 systems
+            devicetree, kernel_options = extract_arg('devicetree=', kernel_options)
+            if devicetree:
+                devicetree = 'devicetree %s' % devicetree
+        netboot_values.update({'ks_host': get_ks_url(hex_ip),
+                               'devicetree': devicetree,
+                               'kernel_options': kernel_options
+                               })
         clear_netboot(netboot_values)
         template = "netboot/grub2_boot.j2"
     return render_template(template, netboot_values)

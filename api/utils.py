@@ -16,6 +16,23 @@ def makedirs_ignore(path, mode):
         if e.errno != errno.EEXIST:
             raise
 
+def extract_arg(arg, kernel_options):
+    """
+    Returns a tuple of (<arg> value, rest of kernel options). If there was
+    no <arg>, the result will be (None, untouched kernel options).
+    """
+    value = None
+    tokens = []
+    for token in kernel_options.split():
+        if token.startswith(arg):
+            value = token[len(arg):]
+        else:
+            tokens.append(token)
+    if value:
+        return (value, ' '.join(tokens))
+    else:
+        return (None, kernel_options)
+
 # Would be nice if Python did this for us: http://bugs.python.org/issue8604
 class AtomicFileReplacement(object):
     """
