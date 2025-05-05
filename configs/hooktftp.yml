@@ -13,6 +13,10 @@ hooks:
     regexp: grub.cfg-([0-9A-Fa-f]{8})
     template: http://localhost:8008/netboots/$1/grub2
 
+  - type: http
+    regexp: bootloader/([0-9A-Fa-f]{8})/petitboot.cfg
+    template: http://localhost:8008/netboots/$1/petitboot
+
   - type: file
     regexp: /([0-9A-Fa-f]{8})/((kernel|initrd))$
     template: /var/lib/tftpboot/$1/$2

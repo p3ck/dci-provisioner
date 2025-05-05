@@ -98,6 +98,16 @@ def netboot_pxe(hex_ip):
         template = "netboot/pxe_boot.j2"
     return render_template(template, netboot_values)
 
+@app.route("/netboots/<hex_ip>/petitboot", methods=["GET"])
+def netboot_petitboot(hex_ip):
+    template = "netboot/petitboot.j2"
+    if netboot_values:
+        netboot_values.update({'ks_host': get_ks_url(hex_ip)})
+        clear_netboot(netboot_values)
+        return render_template(template, netboot_values)
+    else:
+        return "", 404
+
 @app.route("/netboots/<hex_ip>/grub2", methods=["GET"])
 def netboot_grub2(hex_ip):
     template = "netboot/grub2_default.j2"
