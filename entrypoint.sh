@@ -1,9 +1,11 @@
 #!/bin/bash
 
-DEFAULT_NETBOOT_TEMPLATES=${DEFAULT_TEMPLATES:=/opt/dci-provisioner/templates/netboot/}
+DEFAULT_NETBOOT_TEMPLATES=${DEFAULT_NETBOOT_TEMPLATES:=/opt/dci-provisioner/templates/netboot/}
 TEMPLATE_NETBOOT_DIR=${TEMPLATE_NETBOOT_DIR:=/opt/templates/netboot}
-DEFAULT_KICKSTART_TEMPLATES=${DEFAULT_TEMPLATES:=/opt/dci-provisioner/templates/kickstarts/}
+
+DEFAULT_KICKSTART_TEMPLATES=${DEFAULT_KICKSTART_TEMPLATES:=/opt/dci-provisioner/templates/kickstarts/}
 TEMPLATE_KICKSTART_DIR=${TEMPLATE_KICKSTART_DIR:=/opt/templates/kickstarts}
+
 DEFAULT_NETBOOT_IMAGES=${DEFAULT_NETBOOT_IMAGES:=/opt/dci-provisioner/netboot_images/}
 NETBOOT_IMAGES_DIR=${NETBOOT_IMAGES_DIR:=/opt/tftpboot}
 
@@ -12,7 +14,7 @@ mkdir -p $TEMPLATE_KICKSTART_DIR
 mkdir -p $NETBOOT_IMAGES_DIR
 
 # Only copy default netboot template if it's missing.
-for FILE in $DEFAULT_TEMPLATES/*; do
+for FILE in $DEFAULT_NETBOOT_TEMPLATES/*; do
 	TEMPLATE=${FILE#$DEFAULT_NETBOOT_TEMPLATES/}
 	if [ ! -e "$TEMPLATE_NETBOOT_DIR/$TEMPLATE" ]; then
 		cp $DEFAULT_NETBOOT_TEMPLATES/$TEMPLATE $TEMPLATE_NETBOOT_DIR/$TEMPLATE

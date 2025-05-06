@@ -1,3 +1,0 @@
-FROM docker.io/tftpgoteam/hooktftp:latest
-
-COPY configs/hooktftp.yml /etc/hooktftp.yml
