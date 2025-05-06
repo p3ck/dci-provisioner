@@ -1,0 +1,5 @@
+default Install
+label Install
+kernel ::{{ kernel_path }}
+initrd ::{{ initrd_path }}
+append {{ kernel_options }} {{ ks_host }} netboot_method=petitboot
