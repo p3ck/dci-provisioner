@@ -14,6 +14,6 @@ COPY configs/supervisord.d/dci-provisioner.ini /etc/supervisord.d
 WORKDIR /opt/dci-provisioner
 RUN pip install -r requirements.txt
 
-ENV PYTHONPATH /opt/dci-provisioner
+ENV PYTHONPATH /opt/dci-provisioner/api
 
 CMD ["supervisord", "-n"]

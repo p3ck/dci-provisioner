@@ -2,11 +2,13 @@ FROM quay.io/fedora/s2i-core:latest
 
 ENV LANG en_US.UTF-8
 
-VOLUME /var/lib/tftpboot
+VOLUME /opt/tftpboot
+VOLUME /opt/templates
 
 RUN dnf -y upgrade && \
     rpm --setcaps shadow-utils 2>/dev/null && \
-    dnf -y install python3 python3-pip supervisor ipmitool fence-agents-lpar && \
+    dnf -y install python3 python3-pip supervisor ipmitool fence-agents-lpar \
+           go && \
     dnf clean all
 
 COPY api /opt/dci-provisioner/api
@@ -14,7 +16,9 @@ COPY requirements.txt \
      run_worker.sh \
      /opt/dci-provisioner
 COPY templates /opt/dci-provisioner/templates
+COPY configs/hooktftp.yml /etc/hooktftp.yml
 COPY configs/supervisord.d/dci-lab.ini \
+     configs/supervisord.d/hooktftp.ini \
      configs/supervisord.d/rq_worker.ini \
      /etc/supervisord.d
 COPY entrypoint.sh /opt/dci-provisioner/entrypoint.sh
@@ -24,7 +28,11 @@ COPY files/netboot_images /opt/dci-provisioner/netboot_images
 WORKDIR /opt/dci-provisioner
 RUN pip install -r requirements.txt
 
-ENV PYTHONPATH /opt/dci-provisioner
+RUN git clone https://github.com/tftp-go-team/hooktftp.git
+WORKDIR /opt/dci-provisioner/hooktftp
+RUN make build
+
+ENV PYTHONPATH /opt/dci-provisioner/api
 
 ENTRYPOINT ["/opt/dci-provisioner/entrypoint.sh"]
 
