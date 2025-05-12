@@ -8,6 +8,7 @@ import requests
 import time
 from utils import makedirs_ignore
 import json
+import random
 
 import logging
 
@@ -65,6 +66,7 @@ def handle_power(system, command):
             delay = random.uniform(attempt, 2**attempt)
             logger.debug('Backing off %0.3f seconds for power command %s',
                     delay, system.get('fqdn'))
+            time.sleep(delay)
         logger.debug('Launching power script %s (attempt %s) with env %r',
                 script, attempt, env)
 
