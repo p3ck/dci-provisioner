@@ -9,10 +9,12 @@ RUN dnf -y upgrade && \
 
 COPY api /opt/dci-provisioner/api
 COPY requirements.txt /opt/dci-provisioner
-COPY configs/supervisord.d/dci-provisioner.ini /etc/supervisord.d
+COPY configs/supervisord.d/dci-provisioner.ini \
+     /etc/supervisord.d
 
 WORKDIR /opt/dci-provisioner
-RUN pip install -r requirements.txt
+RUN pip install -r requirements.txt && \
+    mkdir /var/log/supervisord
 
 ENV PYTHONPATH /opt/dci-provisioner/api
 
