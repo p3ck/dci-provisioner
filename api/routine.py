@@ -81,6 +81,7 @@ def handle_power(system, command):
         if p.returncode == 0:
             break
     if p.returncode != 0:
+        output = output.decode("utf-8")
         sanitised_output = output[:150].strip()
         if system.get('bmc_password'):
             sanitised_output = sanitised_output.replace(

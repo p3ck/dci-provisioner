@@ -7,15 +7,15 @@ hooks:
 
   - type: http
     regexp: bootloader/[^/]*/pxelinux.cfg/([0-9A-Fa-f]{8})$
-    template: http://localhost:8008/netboots/$1/pxe
+    template: http://localhost:8008/netboots/$1/pxe?clear_netboot
 
   - type: http
     regexp: grub.cfg-([0-9A-Fa-f]{8})
-    template: http://localhost:8008/netboots/$1/grub2
+    template: http://localhost:8008/netboots/$1/grub2?clear_netboot
 
   - type: http
     regexp: bootloader/([0-9A-Fa-f]{8})/petitboot.cfg
-    template: http://localhost:8008/netboots/$1/petitboot
+    template: http://localhost:8008/netboots/$1/petitboot?clear_netboot
 
   - type: file
     regexp: /([0-9A-Fa-f]{8})/((kernel|initrd))$

@@ -33,6 +33,9 @@ def extract_arg(arg, kernel_options):
     else:
         return (None, kernel_options)
 
+def ip_to_hex(ipaddr):
+    return '%02X%02X%02X%02X' % tuple(int(octet) for octet in ipaddr.split('.'))
+
 # Would be nice if Python did this for us: http://bugs.python.org/issue8604
 class AtomicFileReplacement(object):
     """

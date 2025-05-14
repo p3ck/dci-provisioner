@@ -6,7 +6,7 @@ import settings
 import routine
 import socket
 import string
-from utils import decode_values, extract_arg
+from utils import decode_values, extract_arg, ip_to_hex
 
 
 app = flask.Flask(__name__)
@@ -63,6 +63,8 @@ def kickstart(hex_ip):
                                  'ssh_pub_keys': ssh_pub_keys,
                                  'root_pw': settings.ROOT_PW
                                  })
+        if ip_to_hex(flask.request.remote_addr) == hex_ip:
+            r.expire("kickstart:%s" % hex_ip, 10)
         return render_kickstart(osmajor, kickstart_values)
     return flask.Response(
         json.dumps(
@@ -94,8 +96,9 @@ def netboot_pxe(hex_ip):
     netboot_values = decode_values(r.hgetall("netboot:%s" % hex_ip))
     if netboot_values:
         netboot_values.update({'ks_host': get_ks_url(hex_ip)})
-        clear_netboot(netboot_values)
         template = "netboot/pxe_boot.j2"
+        if 'clear_netboot' in flask.request.args:
+            clear_netboot(netboot_values)
     return render_template(template, netboot_values)
 
 @app.route("/netboots/<hex_ip>/petitboot", methods=["GET"])
@@ -103,7 +106,8 @@ def netboot_petitboot(hex_ip):
     template = "netboot/petitboot.j2"
     if netboot_values:
         netboot_values.update({'ks_host': get_ks_url(hex_ip)})
-        clear_netboot(netboot_values)
+        if 'clear_netboot' in flask.request.args:
+            clear_netboot(netboot_values)
         return render_template(template, netboot_values)
     else:
         return "", 404
@@ -122,7 +126,8 @@ def netboot_grub2(hex_ip):
                                'devicetree': devicetree,
                                'kernel_options': kernel_options
                                })
-        clear_netboot(netboot_values)
+        if 'clear_netboot' in flask.request.args:
+            clear_netboot(netboot_values)
         template = "netboot/grub2_boot.j2"
     return render_template(template, netboot_values)
 

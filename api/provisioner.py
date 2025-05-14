@@ -26,6 +26,9 @@ def systems_list():
 @app.route("/systems/<fqdn>", methods=["GET"])
 def system(fqdn):
     k_v = decode_values(r.hgetall("system:%s" % fqdn))
+    hex_ip = pxe_basename(fqdn)
+    netboot = decode_values(r.hgetall("netboot:%s" % hex_ip))
+    kickstart = decode_values(r.hgetall("kickstart:%s" % hex_ip))
     if len(k_v) == 0:
         return flask.Response(
             json.dumps(
@@ -37,6 +40,9 @@ def system(fqdn):
             content_type="application/json",
         )
     else:
+        # Include info about netboot and kickstart settings
+        k_v.update({'netboot': bool(netboot),
+                    'kickstart': bool(kickstart)})
         return flask.jsonify({fqdn: k_v})
 
 @app.route("/systems/<fqdn>", methods=["POST"])
@@ -137,10 +143,15 @@ def system_actions(fqdn):
 @app.route("/jobs/<job_key>", methods=["GET"])
 def job_details(job_key):
     job = Job.fetch(job_key, connection=r)
+    status = '{0}'.format(job.get_status())
     if job.is_finished:
-        return flask.jsonify({'settings': job.result}), 200
+        return flask.jsonify({'results': job.result,
+                              'status': status}), 200
+    elif job.is_failed:
+        return flask.jsonify({'exc_info': job.exc_info,
+                              'status': status}), 500
     else:
-        return "Nay!", 202
+        return flask.jsonify({'status': status}), 202
 
 def has_no_empty_params(rule):
     defaults = rule.defaults if rule.defaults is not None else ()
