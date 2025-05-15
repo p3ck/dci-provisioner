@@ -8,7 +8,7 @@ VOLUME /opt/templates
 RUN dnf -y upgrade && \
     rpm --setcaps shadow-utils 2>/dev/null && \
     dnf -y install python3 python3-pip supervisor ipmitool fence-agents-lpar \
-           go && \
+           fence-agents-apc-snmp go && \
     dnf clean all
 
 COPY api /opt/dci-provisioner/api
