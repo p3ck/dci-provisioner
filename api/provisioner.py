@@ -28,7 +28,7 @@ def system(fqdn):
     k_v = decode_values(r.hgetall("system:%s" % fqdn))
     hex_ip = pxe_basename(fqdn)
     netboot = decode_values(r.hgetall("netboot:%s" % hex_ip))
-    kickstart = decode_values(r.hgetall("kickstart:%s" % hex_ip))
+    kickstart = json.loads(r.get("kickstart:%s" % hex_ip) or '{}')
     if len(k_v) == 0:
         return flask.Response(
             json.dumps(

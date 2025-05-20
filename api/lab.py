@@ -52,17 +52,11 @@ def render_kickstart(osmajor, kickstart_values):
 
 @app.route("/kickstarts/<hex_ip>", methods=["GET"])
 def kickstart(hex_ip):
-    kickstart_values = decode_values(r.hgetall("kickstart:%s" % hex_ip))
+    kickstart_values = json.loads(r.get("kickstart:%s" % hex_ip) or '{}')
     if kickstart_values:
         osmajor = kickstart_values.get("osmajor")
-        # de-serialize repos and ssh_pub_keys
-        repos = json.loads(kickstart_values.get("repos"))
-        ssh_pub_keys = json.loads(kickstart_values.get("ssh_pub_keys"))
         # update with de-serialized versions
-        kickstart_values.update({'repos': repos,
-                                 'ssh_pub_keys': ssh_pub_keys,
-                                 'root_pw': settings.ROOT_PW
-                                 })
+        kickstart_values.update({'root_pw': settings.ROOT_PW})
         if ip_to_hex(flask.request.remote_addr) == hex_ip:
             r.expire("kickstart:%s" % hex_ip, 10)
         return render_kickstart(osmajor, kickstart_values)

@@ -27,10 +27,17 @@ selinux --permissive
 # System timezone
 timezone America/New_York
 
+{% if ignoredisk %}
+ignoredisk {{ ignoredisk }}
+{% endif %}
 zerombr
 clearpart --all --initlabel
+{%- if ondisk %} --drives {{ ondisk }}{% endif %}
+{%- if has_clearpart_cdl is defined %} --cdl{% endif %}
 
+{% if no_autopart is undefined %}
 autopart --type plain
+{% endif %}
 
 %packages --ignoremissing
 chrony
@@ -64,3 +71,4 @@ sed -i 's|PermitRootLogin .*|PermitRootLogin yes|' /etc/ssh/sshd_config
 
 echo -n "{{ breadcrumb }}" >/root/.breadcrumb
 %end
+{{ ks_append }}
