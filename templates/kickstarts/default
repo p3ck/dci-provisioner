@@ -2,7 +2,7 @@ url --url={{ tree_url }}
 
 text
 
-bootloader --location=mbr
+bootloader --location={{ boot_loc|default("mbr") }}{% if kernel_options_post %} --append="{{ kernel_options_post }}"{% endif %}{% if has_leavebootorder is defined %} --leavebootorder{% endif %}{% if bootloader_type %} --{{ bootloader_type }}{% endif %}
 
 network --bootproto=dhcp --hostname={{ fqdn }}
 

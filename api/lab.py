@@ -75,11 +75,7 @@ def netboot_image(hex_ip):
     image = ""
     netboot_values = decode_values(r.hgetall("netboot:%s" % hex_ip))
     if netboot_values:
-        if netboot_values.get('use_boot_image') == "True":
-            image = '{0}/image'.format(hex_ip)
-        else:
-            image = '{0}-image'.format(netboot_values['arch'])
-    if image:
+        image = netboot_values.get('image_path')
         return flask.send_from_directory(settings.TFTP_ROOT, image)
     else:
         return image, 404

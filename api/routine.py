@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 import siphon
 import redis
@@ -27,6 +28,15 @@ def get_jobs_queue(name: str) -> rq.Queue:
         default_timeout=settings.RQ_JOBS_TIMEOUT,
         connection=r,
     )
+
+def safe_copy_file(source, destination):
+    """Safely copy a file with error handling"""
+    try:
+        # Copy the file
+        shutil.copy2(source, destination)
+        return True
+    except shutil.SameFileError:
+        return False
 
 def fetch_file(url, dest):
     # NOTE the stream=True parameter
@@ -107,14 +117,16 @@ def provision(system, action):
     """
 
     # Fetch image installer for host
-    if action.get("image_url"):
-        image_rel_path = os.path.join(action["hex_ip"], 'image')
-        image_path = os.path.join(settings.TFTP_ROOT, image_rel_path)
-        makedirs_ignore(os.path.dirname(image_path), mode=0o755)
+    image_rel_path = os.path.join(action["hex_ip"], 'image')
+    image_path = os.path.join(settings.TFTP_ROOT, image_rel_path)
+    makedirs_ignore(os.path.dirname(image_path), mode=0o755)
+    if action.get("image_url") and action.get('use_boot_image'):
         logger.debug('Fetching file %s for %s', action["image_url"], image_path)
         fetch_file(action["image_url"], image_path)
     else:
-        image_rel_path = ''
+        src = '{0}/{1}-image'.format(settings.TFTP_ROOT, system.get("arch"))
+        logger.debug('Copying file %s for %s', src, image_path)
+        safe_copy_file(src, image_path)
 
     # Fetch kernel for host
     kernel_rel_path = os.path.join(action["hex_ip"], 'kernel')
@@ -132,11 +144,9 @@ def provision(system, action):
 
     # Configure tftp for host
     netboot_values = dict(hex_ip = action["hex_ip"],
-                          arch = system.get("arch"),
                           image_path = image_rel_path,
                           kernel_path = kernel_rel_path,
                           initrd_path = initrd_rel_path,
-                          use_boot_image = str(action.get('use_boot_image')),
                           kernel_options = action.get("kernel_options", ''))
     r.hset("netboot:%s" % action["hex_ip"], mapping=netboot_values)
     r.expire("netboot:%s" % action["hex_ip"], 3600)
