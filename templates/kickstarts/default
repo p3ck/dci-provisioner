@@ -70,5 +70,49 @@ sed -i '/^#PermitRootLogin /s/^#//' /etc/ssh/sshd_config
 sed -i 's|PermitRootLogin .*|PermitRootLogin yes|' /etc/ssh/sshd_config
 
 echo -n "{{ breadcrumb }}" >/root/.breadcrumb
+if efibootmgr &>/dev/null ; then
+    # Log existing boot entries
+    efibootmgr -v > /root/efibootmgr-before.txt
+
+    # Get boot entry numbers for IPv4 PXE (not IPv6) and disk boot
+    PXE_IPV4=$(efibootmgr | grep -Ei 'PXE|v4' | grep -vi 'v6' | awk '{print $1}' | sed 's/Boot//;s/\*//' | head -n 1)
+    DISK_BOOT=$(efibootmgr | grep -Ei 'Red Hat|Linux|HD|Hard Drive|Boot Manager' | grep -vi 'PXE' | awk '{print $1}' | sed 's/Boot//;s/\*//' | head -n 1)
+
+    # Get the current boot order as a list
+    CURRENT_ORDER=$(efibootmgr | grep "BootOrder" | cut -d: -f2 | tr -d ' ')
+
+    # Convert it to an array
+    IFS=',' read -r -a ORDER_ARRAY <<< "$CURRENT_ORDER"
+
+    # Start new boot order with PXE and Disk, if found
+    NEW_ORDER=()
+    if [[ -n "$PXE_IPV4" ]]; then
+        NEW_ORDER+=("$PXE_IPV4")
+    fi
+    if [[ -n "$DISK_BOOT" && "$DISK_BOOT" != "$PXE_IPV4" ]]; then
+        NEW_ORDER+=("$DISK_BOOT")
+    fi
+
+    # Append the rest of the original order, skipping PXE and Disk (already added)
+    for entry in "${ORDER_ARRAY[@]}"; do
+        if [[ "$entry" != "$PXE_IPV4" && "$entry" != "$DISK_BOOT" ]]; then
+            NEW_ORDER+=("$entry")
+        fi
+    done
+
+    # Join back into comma-separated list
+    FINAL_ORDER=$(IFS=,; echo "${NEW_ORDER[*]}")
+
+    # Set the new boot order if PXE and Disk were found
+    if [[ -n "$FINAL_ORDER" ]]; then
+        echo "Setting reordered boot list: $FINAL_ORDER" >> /root/efibootmgr-log.txt
+        efibootmgr -o "$FINAL_ORDER"
+    else
+        echo "Failed to generate a new boot order." >> /root/efibootmgr-error.log
+    fi
+
+    # Log final boot order
+    efibootmgr -v > /root/efibootmgr-after.txt
+fi
 %end
 {{ ks_append }}
