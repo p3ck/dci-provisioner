@@ -39,8 +39,13 @@ clearpart --all --initlabel
 autopart --type plain
 {% endif %}
 
-%packages --ignoremissing
-chrony
+%packages {{ pkgoptions|default('--ignoremissing') }}
+{%- if packages is undefined %} --default
+{% else %}
+{%- for package in packages %}
+{{ package }}
+{%- endfor %}
+{%- endif %}
 %end
 
 %post --log=/dev/console
