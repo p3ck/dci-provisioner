@@ -1,0 +1,30 @@
+jumpbox: "{{ ansible_hostname }}"
+containers:
+  - name: provisioner
+    service: container-provisioner.service
+    image: quay.io/p3ck/dci-provisioner:latest
+    volumes:
+      - "{{ provisioner_dir }}/logs/provisioner:/var/log/supervisord:z"
+    ports:
+      - "8000"
+  - name: lab
+    service: container-lab.service
+    image: quay.io/p3ck/dci-lab:latest
+    volumes:
+      - "{{ provisioner_dir }}/tftpboot:/opt/tftpboot:z"
+      - "{{ provisioner_dir }}/templates:/opt/templates:z"
+      - "{{ provisioner_dir }}/logs/lab:/var/log/supervisord:z"
+    ports:
+      - "69"
+      - "8008"
+  - name: redis
+    service: container-redis.service
+    image: quay.io/sclorg/redis-7-c9s:latest
+    volumes:
+      - "{{ provisioner_dir }}/redis:/var/lib/redis/data:z"
+    ports:
+      - "6379"
+file_owner: "{{ ansible_env.USER }}"
+file_group: "{{ file_owner }}"
+dns_servers: []
+extra_config: {}

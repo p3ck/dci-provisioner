@@ -1,0 +1,73 @@
+- name: Stop container
+  systemd:
+    name: "{{ container.service }}"
+    state: stopped
+  when: "container.service in services"
+
+- name: Destroy container
+  containers.podman.podman_container:
+    name: "{{ container.name }}"
+    state: absent
+
+- name: Remove provisioner image
+  containers.podman.podman_image:
+    name: "{{ container.image }}"
+    state: absent
+
+- name: "Create {{ container.name }} container"
+  containers.podman.podman_container:
+    name: "{{ container.name }}"
+    image: "{{ container.image }}"
+    state: stopped
+    expose: "{{ container.ports }}"
+    network: host
+    volumes: "{{ container.volumes | default(omit) }}"
+    command: "{{ container.command | default(omit) }}"
+    env:
+      REDIS_HOST: "{{ jumpbox }}.{{ domain }}"
+      REDIS_PORT: 6379
+      PROVISIONER_PORT: 8000
+      RQ_QUEUE: "{{ jumpbox }}.{{ domain }}"
+      RQ_JOBS_TIMEOUT: 10h
+      IMAGE_FETCH_TIMEOUT: 120
+      LAB_HOST: "{{ jumpbox }}.{{ domain }}"
+      LAB_PORT: 8008
+  register: container_info
+
+- name: Setting facts about container
+  set_fact:
+    container_name: "{{ container_info.container.Name }}"
+    container_pidfile: "{{ container_info.container.ConmonPidFile }}"
+
+- name: Copy the systemd service file
+  copy:
+    content: |
+      [Unit]
+      Description=Podman {{ container.service }}
+      [Service]
+      Restart=on-failure
+      ExecStart=/usr/bin/podman start {{ container_name }}
+      ExecStop=/usr/bin/podman stop -t 10 {{ container_name }}
+      KillMode=none
+      Type=forking
+      PIDFile={{ container_pidfile }}
+      [Install]
+      WantedBy=default.target
+    dest: "/etc/systemd/system/{{ container.service }}"
+    mode: 0644
+
+- name: Reload systemd service
+  systemd:
+    daemon_reexec: yes
+    scope: system
+
+- name: "Enable {{ container.service }}"
+  systemd:
+    name: "{{ container.service }}"
+    enabled: yes
+    scope: system
+
+- name: "Start {{ container.service }}"
+  systemd:
+    name: "{{ container.service }}"
+    state: started

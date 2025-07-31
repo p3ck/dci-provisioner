@@ -1,0 +1,7 @@
+ansible.posix
+community.general
+ansible.netcommon
+containers.podman
+community.libvirt
+
+netaddr

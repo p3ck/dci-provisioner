@@ -1,0 +1,4 @@
+network_name: "net-dci"
+libvirt_images_dir: /var/lib/libvirt/images/
+mode: "legacy"
+bridge_name: "dci-br"

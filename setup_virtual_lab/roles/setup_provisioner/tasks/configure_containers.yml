@@ -1,0 +1,20 @@
+- name: Create directory to hold files
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ file_owner }}"
+    group: "{{ file_group }}"
+    mode: 0777
+    recurse: yes
+  loop:
+    - "{{ provisioner_dir }}/redis"
+    - "{{ provisioner_dir }}/tftpboot"
+    - "{{ provisioner_dir }}/templates"
+    - "{{ provisioner_dir }}/logs/provisioner"
+    - "{{ provisioner_dir }}/logs/lab"
+
+- name: Setup containers
+  include_tasks: container_setup.yml
+  loop: "{{ containers }}"
+  loop_control:
+    loop_var: container

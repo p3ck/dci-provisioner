@@ -1,0 +1,13 @@
+- name: Install Packages
+  include_tasks: packages.yml
+
+- name: Populate service facts
+  service_facts:
+
+- name: Configure Containers
+  include_tasks: configure_containers.yml
+
+- name: Add Firewall Ports
+  set_fact:
+    tcp_ports: "{{ tcp_ports| default([]) + [80, 8000, 8008] }}"
+    udp_ports: "{{ udp_ports| default([]) + [53, 67, 69] }}"

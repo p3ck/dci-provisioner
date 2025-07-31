@@ -1,0 +1,54 @@
+---
+all:
+  vars:
+    jumpbox: "jumpbox"
+    domain: "example.local"
+    provision_port: 8000
+    machine_network_cidr: 10.60.0.0/24
+    machine_network_ip: "{{ machine_network_cidr | ansible.utils.nthhost(190) }}"
+    provisioner_dir: /opt/dci-provisioner
+    libvirt_images_dir: /opt/dci-provisioner/libvirt
+    dns_server: "{{ machine_network_ip }}"
+    router: "{{ machine_network_ip }}"
+    dhcp_start: "{{ machine_network_cidr | ansible.utils.ipaddr('20') | ansible.utils.ipaddr('address') }}"
+    dhcp_end: "{{ machine_network_cidr | ansible.utils.ipaddr('100') | ansible.utils.ipaddr('address') }}"
+    build_bridge: true
+    bridge_name: dci-br
+    bridge_zone: libvirt
+    #  bridge_interface: eno2
+suts:
+  vars:
+    ansible_ssh_extra_args: "-o StrictHostKeyChecking=no"
+  hosts:
+    sut1.example.local:
+      ip_address: 10.60.0.51
+      mac: "52:54:00:EF:C0:2C"
+      arch: x86_64
+      power_address: "{{ jumpbox }}.{{ domain }}"
+      power_user: admin
+      power_password: password
+      power_id: 6230
+      power_type: ipmitool_lanplus
+      use_boot_image: true
+      virt:
+        mode: efi
+        disks:
+          main: 100
+        memory: "8384"
+        vcpu: "4"
+    sut2.example.local:
+      ip_address: 10.60.0.52
+      mac: "52:54:00:EF:C0:2D"
+      arch: x86_64
+      power_address: "{{ jumpbox }}.{{ domain }}"
+      power_user: admin
+      power_password: password
+      power_id: 6231
+      power_type: ipmitool_lanplus
+      use_boot_image: false
+      virt:
+        mode: legacy
+        disks:
+          main: 100
+        memory: "8384"
+        vcpu: "4"

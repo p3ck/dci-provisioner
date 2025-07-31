@@ -1,0 +1,62 @@
+---
+- name: Wait for provisioner to be available
+  uri:
+    url: "http://{{ jumpbox }}.{{ domain }}:{{ provision_port }}/site-map"
+    method: GET
+    status_code:
+      - 200
+  until: uri_output.status == 200
+  retries: 24 # Retries for 24 * 5 seconds = 120 seconds = 2 minutes
+  delay: 5 # Every 5 seconds
+  register: uri_output
+
+- name: Query systems list
+  uri:
+    url: "http://{{ jumpbox }}.{{ domain }}:{{ provision_port }}/systems"
+    method: GET
+  register: systems
+
+- debug:
+    msg: "Current Systems: {{ systems.json.systems }}"
+
+- name: Update power settings for each existing test system
+  uri:
+    url: "http://{{ jumpbox }}.{{ domain }}:{{ provision_port }}/systems/{{ inventory_hostname }}"
+    method: PATCH
+    body:
+      arch: "{{ arch }}"
+      lab: "{{ jumpbox }}.{{ domain }}"
+      bmc_type: "{{ power_type }}"
+      bmc_address: "{{ power_address }}"
+      bmc_user: "{{ power_user }}"
+      bmc_password: "{{ power_password }}"
+      bmc_port: "{{ power_id| default('') }}"
+    body_format: json
+    headers:
+      Accept: application/json
+      Content-Type: application/json
+    status_code: [200]
+  when:
+    - inventory_hostname in systems.json.systems
+  become: true
+
+- name: Create any systems which were not already present
+  uri:
+    url: "http://{{ jumpbox }}.{{ domain }}:{{ provision_port }}/systems/{{ inventory_hostname }}"
+    method: POST
+    body:
+      arch: "{{ arch }}"
+      ip_address: "{{ ip_address }}"
+      lab: "{{ jumpbox }}.{{ domain }}"
+      bmc_type: "{{ power_type }}"
+      bmc_address: "{{ power_address }}"
+      bmc_user: "{{ power_user }}"
+      bmc_password: "{{ power_password }}"
+      bmc_port: "{{ power_id| default('') }}"
+    body_format: json
+    headers:
+      Accept: application/json
+      Content-Type: application/json
+    status_code: [201, 409]
+  when:
+    - inventory_hostname not in systems.json.systems

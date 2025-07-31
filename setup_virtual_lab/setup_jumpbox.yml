@@ -1,0 +1,43 @@
+---
+- name: Setup Lab in a box
+  hosts: localhost
+  gather_facts: true
+  tasks:
+    - name: Setup SUT host network
+      include_role:
+        name: setup_sut_network
+      vars:
+        bridge_ip: "{{ machine_network_ip }}"
+        bridge_prefix: "{{ machine_network_cidr | ansible.utils.ipaddr('prefix') }}"
+
+    - name: Setup Provisioner
+      include_role:
+        name: setup_provisioner
+
+    - name: Setup VM host software
+      include_role:
+        name: setup_vm_host_software
+
+    - name: Setup Virtual BMC
+      include_role:
+        name: setup_virtual_bmc
+
+- name: Process virtual systems
+  hosts: suts
+  gather_facts: false
+  tasks:
+    - name: Add Suts to provisioner
+      include_role:
+        name: setup_sut_hosts
+
+- name: Setup firewall
+  hosts: localhost
+  gather_facts: true
+  tasks:
+    - name: Specify Firewall zone
+      set_fact:
+        firewall_zones: "{{ firewall_zones | default([]) + ['libvirt'] }}"
+
+    - name: "Setup Firewall"
+      include_role:
+        name: setup_firewall

@@ -1,0 +1,29 @@
+- name: Create Temp DIr
+  tempfile:
+    state: directory
+  register: temp_dir
+  delegate_to: localhost
+
+- name: Destroy VM
+  include_tasks: destroy_vm.yml
+  args:
+    apply:
+      delegate_to: localhost
+
+- name: Create VM
+  include_tasks: provision_vm.yml
+  args:
+    apply:
+      delegate_to: localhost
+
+- name: Setup BMC
+  include_tasks: vbmc.yml
+  args:
+    apply:
+      delegate_to: localhost
+
+- name: Add SUT
+  include_tasks: add_sut.yml
+  args:
+    apply:
+      delegate_to: localhost

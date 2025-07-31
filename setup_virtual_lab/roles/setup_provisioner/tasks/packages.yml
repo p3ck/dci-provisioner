@@ -1,0 +1,5 @@
+- name: Install Required Packages
+  package:
+    name:
+      - podman
+    state: latest

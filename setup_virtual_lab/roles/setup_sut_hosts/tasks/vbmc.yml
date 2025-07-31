@@ -1,0 +1,21 @@
+- name: Remove sut from VirtualBMC
+  shell: >
+    /usr/local/bin/vbmc delete {{ inventory_hostname }}
+  ignore_errors: yes
+  when:
+    - virt is defined
+
+- name: Add sut to VirtualBMC
+  shell: >
+    /usr/local/bin/vbmc add {{ inventory_hostname }} --username admin --password password 
+    --address {{ power_address }}
+    --port {{ power_id }} --libvirt-uri qemu:///system
+    && /usr/local/bin/vbmc start {{ inventory_hostname }}
+  when:
+    - virt is defined
+
+- name: power off sut
+  shell: >
+    /usr/bin/ipmitool -I lanplus -U admin -P password -p {{ power_id }} -H {{ power_address }} power off
+  when:
+    - virt is defined

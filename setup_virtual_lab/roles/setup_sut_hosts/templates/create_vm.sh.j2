@@ -1,0 +1,31 @@
+#! /bin/bash
+
+virt-install \
+    --virt-type=kvm \
+    --name "{{ inventory_hostname }}" \
+    --uuid="{{ virt.uuid| default(99999999 | random | to_uuid) }}" \
+    --memory {{ virt.memory }} \
+    --vcpus={{ virt.vcpu }} \
+    --os-variant=rhel8.3 \
+    --os-type linux \
+    --network=bridge:{{ bridge_name }},mac="{{ mac }}" \
+    {% for disk_name, disk_size in virt.disks.items() %}
+    --disk path={{ libvirt_images_dir }}/{{ inventory_hostname }}_{{ disk_name }}.qcow2,size={{ disk_size }},format=qcow2 \
+    {% endfor %}
+    --graphics vnc \
+    --noautoconsole \
+    --wait=-1 \
+    {% if virt.mode == 'secure' %}
+    --boot uefi,network,hd \
+    {% elif virt.mode == 'efi' %}
+    --boot loader=/usr/share/edk2/ovmf/OVMF_CODE.cc.fd,loader.readonly=yes,loader.secure='no',loader.type=pflash,nvram=/var/lib/libvirt/qemu/nvram/{{ inventory_hostname }}_VARS.fd,network,hd \
+    {% else %}
+    --boot network,hd \
+    {% endif %}
+    --events on_reboot=restart \
+    --autostart \
+    --print-xml > {{ temp_dir.path }}/{{ inventory_hostname}}.xml
+
+virsh define --file {{ temp_dir.path }}/{{ inventory_hostname }}.xml
+
+virsh detach-device {{ inventory_hostname }} {{ temp_dir.path }}/rng_device.xml --config

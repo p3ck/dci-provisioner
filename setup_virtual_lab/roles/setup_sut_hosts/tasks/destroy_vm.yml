@@ -1,0 +1,14 @@
+- name: Destroy VM
+  community.libvirt.virt:
+    name: "{{ inventory_hostname }}"
+    state: destroyed
+  ignore_errors: yes
+  when:
+    - virt is defined
+
+- name: Undefine VM
+  shell:
+    cmd: "virsh undefine --remove-all-storage --nvram {{ inventory_hostname }}" # community.libvirt.virt undefine doesn't have the ability to specify --nvram
+  ignore_errors: yes
+  when:
+    - virt is defined

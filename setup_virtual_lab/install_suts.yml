@@ -1,0 +1,105 @@
+---
+- name: 'Install Systems Under Test'
+  hosts: suts
+  gather_facts: False
+  strategy: free
+  tasks:
+    - name: Record breadcrumb
+      ansible.builtin.set_fact:
+        breadcrumb: "fedora-42-{{ 999999 | random }}"
+
+    - name: Kickstart Variables
+      ansible.builtin.set_fact:
+        kickstart:
+          osmajor: "42"
+          osminor: "0"
+          tree_url: "https://dl.fedoraproject.org/pub/fedora/linux/releases/42/Server/x86_64/os/"
+          repos:
+            OS: "https://dl.fedoraproject.org/pub/fedora/linux/releases/42/Server/x86_64/os/"
+          ssh_pub_keys:
+            - "{{ lookup('ansible.builtin.file', '~/.ssh/id_rsa.pub') }}"
+          breadcrumb: "{{ breadcrumb }}"
+          ks_append: "{{ ks_append | default(ks_append| default('')) }}"
+          disable_root_login_pw: "{{ disable_root_login_pw | default(false, true) }}"
+
+    - name: Combine kickstart variables, default ks_meta and system specific ks_meta
+      ansible.builtin.set_fact:
+        provision_ks_meta: "{{ ks_meta | default({}) | ansible.builtin.combine(kickstart, ks_meta | default({})) }}"
+
+    - name: Provision System
+      uri:
+        url: "http://localhost:8000/systems/{{ inventory_hostname }}/actions"
+        method: POST
+        body:
+          action: "provision"
+          kernel_url: "https://dl.fedoraproject.org/pub/fedora/linux/releases/42/Server/x86_64/os/images/pxeboot/vmlinuz"
+          initrd_url: "https://dl.fedoraproject.org/pub/fedora/linux/releases/42/Server/x86_64/os/images/pxeboot/initrd.img"
+          image_url: "https://dl.fedoraproject.org/pub/fedora/linux/releases/42/Server/x86_64/os/EFI/BOOT/grubx64.efi"
+          use_boot_image: "{{ use_boot_image }}"
+          kernel_options: "grub2_postfix=efi {{ kernel_options | default(kernel_options| default('')) }}"
+          ks_meta: "{{ provision_ks_meta }}"
+        body_format: json
+        headers:
+          Accept: application/json
+          Content-Type: application/json
+        status_code: [201, 409]
+      changed_when: provision.status == 201
+      register: provision
+      delegate_to: localhost
+
+    - name: Wait for Install job to initiate
+      uri:
+        url: "http://localhost:8000/jobs/{{ provision.json.job }}"
+        method: GET
+        status_code:
+          - 200
+          - 500
+      until: uri_output.status == 200 or uri_output.status == 500
+      retries: 60 # Retries for 60 * 10 seconds = 600 seconds = 10 minutes
+      delay: 10 # Every 10 seconds
+      failed_when: uri_output.status == 500
+      register: uri_output
+      delegate_to: localhost
+
+    - name: "Wait for netboot to clear"
+      uri:
+        url: "http://localhost:8000/systems/{{ inventory_hostname }}"
+        method: GET
+        status_code:
+          - 200
+          - 500
+      until: netboot.json[inventory_hostname]['netboot'] | bool is false
+      retries: "{{ reboot_watchdog_timeout | default(600) // 10 }}"
+      delay: 10 # Every 10 seconds
+      register: netboot
+      delegate_to: localhost
+
+    - name: "Wait for kickstart to clear"
+      uri:
+        url: "http://localhost:8000/systems/{{ inventory_hostname }}"
+        method: GET
+      until: kickstart.json[inventory_hostname]['kickstart'] | bool is false
+      retries: 60 # Retries for 60 * 10 seconds = 600 seconds = 10 minutes
+      delay: 10 # Every 10 seconds
+      register: kickstart
+      delegate_to: localhost
+
+    - name: Wait 3600 (default) or install_watchdog seconds, but only start checking after 60 seconds
+      wait_for_connection:
+        delay: 60
+        timeout: "{{ install_watchdog_timeout| default(3600) }}"
+
+    - name: Read breadcrumb
+      ansible.builtin.slurp:
+        src: /root/.breadcrumb
+      register: breadcrumb_encoded
+
+    - name: Decode breadcrumb
+      ansible.builtin.set_fact:
+        breadcrumb_remote: "{{ breadcrumb_encoded['content'] | b64decode }}"
+
+    - name: Verify Install happened
+      assert:
+        that:
+          - breadcrumb == breadcrumb_remote
+...
