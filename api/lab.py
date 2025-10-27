@@ -94,6 +94,7 @@ def netboot_pxe(hex_ip):
 @app.route("/netboots/<hex_ip>/petitboot", methods=["GET"])
 def netboot_petitboot(hex_ip):
     template = "netboot/petitboot.j2"
+    netboot_values = decode_values(r.hgetall("netboot:%s" % hex_ip))
     if netboot_values:
         netboot_values.update({'ks_host': get_ks_url(hex_ip)})
         if 'clear_netboot' in flask.request.args:
